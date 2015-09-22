@@ -1,0 +1,9 @@
+{
+  "name": "SLLogger",
+  "version": "0.0.0",
+  "private": true,
+  "author": "Aizic Moisen <amo@speedledger.se>",
+  "scripts": {
+    "start": "app.js"
+  }
+}

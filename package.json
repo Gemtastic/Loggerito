@@ -4,6 +4,6 @@
   "private": false,
   "author": "Aizic Moisen <aizic.moisen@gmail.com>",
   "scripts": {
-    "start": "./src/app.js"
+    "start": "node ./src/app.js"
   }
 }

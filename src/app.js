@@ -7,10 +7,17 @@ var fs = require('fs');
 
 var path = require('path');
 var rootPath = path.dirname(require.main.filename);
+var loggers = [];
+var defaultLogger = {
+    name: 'default',
+    path: rootPath + '/logs',
+    filename: 'logs.log'
+};
 
+loggers.push(defaultLogger);
 
 /**
- * Checks is there is a log file/directory already,
+ * Checks is there is a log file in the standard log directory already,
  * if not it will create one.
  *
  * @param {string} filename - string with the name you wish to have of the log file.
@@ -18,16 +25,85 @@ var rootPath = path.dirname(require.main.filename);
  */
 function createLogfile(filename, callback){
 
-  var path = rootPath + '/logs';
-
   checkAccess(rootPath, function(){
-    checkFileExists(path + '/' + filename, function(){
-      checkDirectoryExists(path, function(exists){
-        exists ? createFile(path + '/' + filename, callback) : createDirectoryAndFile(path, filename, callback);
-      });
+    checkFileExists(loggers[0].path + '/' + filename, function(err, exists){
+        if(err) return console.log('Error: ' + err);
+        if(!exists){
+            checkDirectoryExists(loggers[0].path, function(err, exists){
+            if(err) return console.log('Error: ' + err);
+            exists ? createFile(loggers[0].path + '/' + filename, callback) : 
+                     createDirectoryAndFile(loggers[0].path, filename, callback);
+            });
+        } else {
+            callback();
+        }
     });
   });
+}
 
+/**
+ * Adds a new logger if a logger with the provided name does not exist.
+ * Callback recieves creation status true or false.
+ * 
+ * @param {string} filename
+ * @param {string} name
+ * @param {string} path
+ * @param {function} callback
+ */
+function addLogger(filename, name, path, callback){
+    var exists = checkIfLoggerExists(name);
+    
+    if(!exists){
+        var logger = new Logger(filename, name, path);
+        loggers.push(logger);
+        callback(true);
+    }
+    callback(false);
+}
+
+/**
+ * Creates a new logger object.
+ * 
+ * @param {string} filename
+ * @param {string} name
+ * @param {string} path
+ * @returns {newLogger.logger} new logger object
+ */
+function Logger(filename, name, path){
+    var logger = {
+        name: name,
+        path: rootPath + path,
+        filename: filename
+    };
+    return logger;
+}
+
+/**
+ * Checks if logger name is registered, returns boolean if exists or not.
+ *  
+ * @param {string} name
+ * @returns {Boolean}
+ */
+function checkIfLoggerExists(name){
+    var exists = findInLoggers(name);
+    if(exists !== undefined){
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Finds a name in the loggers if there, else nothing.
+ * 
+ * @param {type} name
+ * @returns boolean | undefined
+ */
+function findInLoggers(name){
+    for(var i = 0; i < loggers.length; i++){
+        if(loggers[i].name === name){
+            return loggers[i];
+        }
+    }
 }
 
 /**
@@ -38,7 +114,7 @@ function createLogfile(filename, callback){
  */
 function checkAccess(path, callback){
   fs.access(path, fs.R_OK & fs.W_OK, function(err){
-    err ? console.log("No access!") : callback();
+    err ? console.log(new Error("No access!", path)) : callback();
   });
 }
 
@@ -53,13 +129,13 @@ function checkFileExists(path, callback){
   checkStat(path, function(stats){
     if(stats){
       if(stats.isFile()){
-        log('info', 'File already exists.');
-        return true;
+        console.log('File already exists.');
+        callback(null, true);
       } else {
-        console.log('Path is not a file.');
+        callback(new Error('Path is not a file.', path));
       }
     } else {
-      callback();
+      callback(null, false);
     }
   });
 }
@@ -87,12 +163,13 @@ function checkDirectoryExists(path, callback){
     if(stats){
       if(stats.isDirectory()){
         console.log('Directory already exists.');
-        callback(true);
+        callback(null, true);
       } else {
         console.log('Path is not directory!');
+        callback(new Error('Path is not directory.', path));
       }
     } else {
-      callback(false);
+      callback(null, false);
     }
   });
 }
@@ -107,10 +184,9 @@ function checkDirectoryExists(path, callback){
 function createDirectoryAndFile(path, filename, callback) {
   fs.mkdir(path, function (err) {
     if (err) {
-      return console.log('Could not make directory.');
+      return console.log('Could not make directory: ' + err);
     }
     checkStat(path, function () {
-      console.log('Successfully created directory!');
       createFile(path + '/' + filename, callback);
     });
   });
@@ -123,9 +199,9 @@ function createDirectoryAndFile(path, filename, callback) {
  * @param callback
  */
 function createFile(path, callback){
-  var helloWorld = transformToLogStash('info', 'Created default logfile.');
+  var helloWorld = transformToLogStash('info', 'Created default log file.');
   fs.writeFile(path, helloWorld, function(err){
-    err ? console.log('Could not create file') : callback();
+    err ? console.log('Could not create file: ' + err) : callback();
   });
 }
 
@@ -136,7 +212,10 @@ function createFile(path, callback){
  * @param callback
  */
 function writeToFile(file, content, callback){
-
+    fs.appendFile(file, '\n' + content, function(err){
+        if(err) throw err;
+        callback();
+    });
 }
 
 /**
@@ -161,26 +240,43 @@ function transformToLogStash(level, message){
   return content;
 }
 
-function log(level, message, callback){
-
+/**
+ * Logging function exposed to the API. Validates the arguments and if log-file
+ * exists or not if provided. Will choose the default logging file if provided 
+ * logger doesn't exist.
+ * 
+ * @param {string} level
+ * @param {string} message
+ * @param {string} loggername
+ * @param {function} callback
+ */
+function log(level, message, loggername, callback){
+    
+  var logger;
+  
+  if(arguments.length < 2) throw new Error('Log failed due to inaccurate log-put.', arguments.length);
+  if(typeof loggername === "string"){
+      logger = findInLoggers(loggername) || findInLoggers('default');
+  } else {
+      logger = findInLoggers('default');
+  }
   var content = transformToLogStash(level, message);
 
-  var file = checkFileExists(file, function(){
-    console.log('File not found!');
-  });
-
-  if(file){
-    checkAccess(file, function(){
-
+  checkFileExists(logger.path + '/' + logger.filename, function(err, exists){
+    if(err) throw new err;
+        checkAccess(logger.path + '/' + logger.filename, function(){
+            writeToFile(logger.path + '/' + logger.filename, content, function(){
+                if(typeof callback === 'function'){
+                    callback(true);
+                }
+            });
+        });
     });
-  }
 }
 
-createLogfile('logs.log', function(){
-  console.log('Created Log File!');
-});
+createLogfile('logs.log', function(){});
 
 module.exports = {
   log: log,
-  createLogFile: createLogfile
+  addLogger: addLogger
 };

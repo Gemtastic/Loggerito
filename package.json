@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": false,
   "author": "Aizic Moisen <aizic.moisen@gmail.com>",
-  "main": "/src/app.js",
+  "main": "./src/app.js",
   "repository": {
     "type": "git",
     "url": "git://github.com/Gemtastic/Loggerito.git"

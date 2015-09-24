@@ -282,6 +282,7 @@ createLogfile('logs.log', function(){
 module.exports = {
   log: function(level, message, loggername, callback){
     function isLoaded(){
+        console.log('Checking if loaded...');
         loaded ? log(level, message, loggername, callback) : isLoaded();
     }   
   },

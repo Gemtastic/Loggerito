@@ -4,8 +4,8 @@
  */
 
 var fs = require('fs');
-
 var path = require('path');
+
 var rootPath = path.dirname(require.main.filename);
 var loggers = [];
 var defaultLogger = {
@@ -13,7 +13,7 @@ var defaultLogger = {
     path: rootPath + '/logs',
     filename: 'logs.log'
 };
-
+var loaded;
 loggers.push(defaultLogger);
 
 /**
@@ -274,9 +274,16 @@ function log(level, message, loggername, callback){
     });
 }
 
-createLogfile('logs.log', function(){});
+
+createLogfile('logs.log', function(){
+    loaded = true;
+});
 
 module.exports = {
-  log: log,
+  log: function(level, message, loggername, callback){
+    function isLoaded(){
+        loaded ? log(level, message, loggername, callback) : isLoaded();
+    }   
+  },
   addLogger: addLogger
 };

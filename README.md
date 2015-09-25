@@ -2,6 +2,8 @@
 This is a small and simple logger that logs to file in logstash objects.
 
 
+###Loggerito is still in prodction, full of bugs atm so please do not try to use it yet.
+
 ####How to use:
 A simple logging example:
 

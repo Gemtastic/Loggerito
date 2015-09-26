@@ -34,7 +34,7 @@ function createLogfile(logger, callback) {
                             createDirectoryAndFile(logger.path, logger.filename, callback);
                 });
             } else {
-                callback(new Error('Logger already existed.'));
+                if(callback) callback(new Error('Logger already existed.'));
             }
         });
     });
@@ -197,7 +197,8 @@ function createDirectoryAndFile(path, filename, callback) {
 function createFile(path, callback) {
     var helloWorld = transformToLogStash('info', 'Created this log file.');
     fs.writeFile(path, helloWorld, function (err) {
-        err ? console.log('Could not create file: ' + err) : callback(undefined, true);
+        if(err) console.log('Could not create file: ' + err);
+        if(callback) callback(undefined, true);
     });
 }
 

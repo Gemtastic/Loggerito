@@ -2,31 +2,30 @@
 This is a small and simple logger that logs to file in logstash objects.
 
 
-###Loggerito is still in prodction, full of bugs atm so please do not try to use it yet.
-
-####How to use:
+###How to use:
 A simple logging example:
 
-    var logger = require('loggerito');
-    
-    logger.log('hello', 'Hello to the world!', function(){
-    console.log('Log created!');
-    });
-    
+```javascript
+var logger = require('loggerito');
 
-#####log(level, message[, loggername[, callback]])
-**Level** _*required_ Is your logging level.
+logger.log('hello', 'Hello to the world!', function(){
+console.log('Log created!');
+});
+```
 
-**Message** _*required_ Is the message you'd like to log.
+#### `log(level, message[, loggername[, callback]])`
+- **Level** _*required_ Is your logging level.
 
-**loggername** If you have made your own logger you may specify it here.
+- **Message** _*required_ Is the message you'd like to log.
 
-**callback** If you wish to have a callback make sure it's the last argument into the `log()` function.
+- **loggername** If you have made your own logger you may specify it here.
 
-#####addLog(filename, name, callback)
+- **callback** If you wish to have a callback make sure it's the last argument into the `log()` function.
 
-**filename** _*required_ The filename of your new log.
+#### `addLog(filename, name, callback)`
 
-**name** _*required_ the internal name id for your logger.
+- **filename** _*required_ The filename of your new log.
 
-**callback** If you wish to have a callback you may add one.
+- **name** _*required_ the internal name id for your logger.
+
+- **callback** If you wish to have a callback you may add one.

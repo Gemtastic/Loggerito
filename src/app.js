@@ -20,21 +20,21 @@ loggers.push(defaultLogger);
  * Checks is there is a log file in the standard log directory already,
  * if not it will create one.
  *
- * @param {string} filename - string with the name you wish to have of the log file.
+ * @param {string} logger - string with the name you wish to have of the log file.
  * @param callback
  */
-function createLogfile(filename, callback) {
-
+function createLogfile(logger, callback) {
+    console.log(rootPath);
+    console.log(logger.path);
+    console.log(logger.filename);
     checkAccess(rootPath, function () {
-        checkFileExists(loggers[0].path + '/' + filename, function (err, exists) {
-            if (err)
-                return console.log('Error: ' + err);
+        checkFileExists(logger.path + '/' + logger.filename, function (err, exists) {
+            if (err) return console.log('Error: ' + err);
             if (!exists) {
-                checkDirectoryExists(loggers[0].path, function (err, exists) {
-                    if (err)
-                        return console.log('Error: ' + err);
-                    exists ? createFile(loggers[0].path + '/' + filename, callback) :
-                            createDirectoryAndFile(loggers[0].path, filename, callback);
+                checkDirectoryExists(logger.path, function (err, exists) {
+                    if (err) return console.log('Error: ' + err);
+                    exists ? createFile(logger.path + '/' + logger.filename, callback) :
+                            createDirectoryAndFile(logger.path, logger.filename, callback);
                 });
             } else {
                 callback();
@@ -49,18 +49,18 @@ function createLogfile(filename, callback) {
  * 
  * @param {string} filename
  * @param {string} name
- * @param {string} path
  * @param {function} callback
  */
-function addLogger(filename, name, path, callback) {
+function addLogger(filename, name, callback) {
     var exists = checkIfLoggerExists(name);
 
     if (!exists) {
-        var logger = new Logger(filename, name, path);
+        var logger = new Logger(filename, name, '/' + 'logs');
         loggers.push(logger);
         callback(true);
+    } else {
+        callback(false);
     }
-    callback(false);
 }
 
 /**
@@ -116,7 +116,7 @@ function findInLoggers(name) {
  */
 function checkAccess(path, callback) {
     fs.access(path, fs.R_OK & fs.W_OK, function (err) {
-        err ? console.log(new Error("No access!", path)) : callback();
+        err ? callback(err) : callback(null, true);
     });
 }
 
@@ -163,10 +163,8 @@ function checkDirectoryExists(path, callback) {
     checkStat(path, function (stats) {
         if (stats) {
             if (stats.isDirectory()) {
-                console.log('Directory already exists.');
-                callback(null, true);
+                callback(undefined, true);
             } else {
-                console.log('Path is not directory!');
                 callback(new Error('Path is not directory.', path));
             }
         } else {
@@ -241,6 +239,14 @@ function transformToLogStash(level, message) {
     return content;
 }
 
+/**
+ * Checks if there is a loggername and if it exists it returns the named logger
+ * or the default logger.
+ * 
+ * @param {type} loggername
+ * @param {type} callback
+ * @returns {undefined}
+ */
 function selectLogger(loggername, callback) {
     var logger;
     if (typeof loggername === "string") {
@@ -251,18 +257,23 @@ function selectLogger(loggername, callback) {
     callback(logger);
 }
 
+/**
+ * Checks if the logfile has been created, if not it creates it and the default
+ * log directory.
+ * 
+ * @param {type} callback
+ * @returns {undefined}
+ */
 function isLoaded(callback) {
     if (!loaded) {
-        createLogfile('logs.log', function () {
+        createLogfile(findInLoggers('default'), function () {
             loaded = true;
-            callback();
+            callback(true);
         });
     } else {
-        callback();
+        callback(false);
     }
 }
-
-
 
 /**
  * Logging function exposed to the API. Validates the arguments and if log-file
@@ -276,17 +287,23 @@ function isLoaded(callback) {
  */
 function log(level, message, loggername, callback) {
     var content = transformToLogStash(level, message);
+    var theseArguments = arguments;
     
-    if (arguments.length < 2) throw new Error('Log failed due to inaccurate log-put.', arguments.length);
+    if (arguments.length < 2) throw new Error('Log failed due to incorrect log-put.', arguments.length);
     
-    isLoaded(function () {
-        selectLogger(loggername, function(logger){
+    isLoaded(function (result) {
+        var name;
+        typeof loggername === 'string' ? name = loggername : name = '';
+        
+        selectLogger(name, function(logger){
             checkFileExists(logger.path + '/' + logger.filename, function (err, exists) {
                 if (err) throw new err;
-                checkAccess(logger.path + '/' + logger.filename, function () {
+                checkAccess(logger.path + '/' + logger.filename, function (err, exists) {
+                    if(err) throw new err;
                     writeToFile(logger.path + '/' + logger.filename, content, function () {
-                        if (typeof callback === 'function') {
-                            callback(true);
+                        if (typeof theseArguments[theseArguments.length - 1] === 'function') {
+                            var lastFunction = theseArguments[theseArguments.length - 1];
+                            lastFunction(true);
                         }
                     });
                 });
@@ -295,7 +312,20 @@ function log(level, message, loggername, callback) {
     });
 }
 
+/**
+ * Adds creates a new logger object and a logfile for it.
+ * 
+ * @param {string} filename
+ * @param {string} name
+ * @param {function} callback
+ */
+function addLog(filename, name, callback){
+    addLogger(filename, name, function(){
+        createLogfile(findInLoggers(name), callback);
+    });
+}
+
 module.exports = {
     log: log,
-    addLogger: addLogger
+    addLog: addLog
 };

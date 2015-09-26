@@ -24,9 +24,6 @@ loggers.push(defaultLogger);
  * @param callback
  */
 function createLogfile(logger, callback) {
-    console.log(rootPath);
-    console.log(logger.path);
-    console.log(logger.filename);
     checkAccess(rootPath, function () {
         checkFileExists(logger.path + '/' + logger.filename, function (err, exists) {
             if (err) return console.log('Error: ' + err);

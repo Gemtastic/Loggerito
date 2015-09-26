@@ -195,7 +195,7 @@ function createDirectoryAndFile(path, filename, callback) {
  * @param callback
  */
 function createFile(path, callback) {
-    var helloWorld = transformToLogStash('info', 'Created default log file.');
+    var helloWorld = transformToLogStash('info', 'Created this log file.');
     fs.writeFile(path, helloWorld, function (err) {
         err ? console.log('Could not create file: ' + err) : callback();
     });
